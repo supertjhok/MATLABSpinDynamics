@@ -2034,6 +2034,7 @@ sweep = simulate_slse_offset_sweep(
 \end{lstlisting}
 
 \subsection{Circular and Multi-Axis Excitation}
+\label{sec:nqr-circular}
 
 The examples above excite the powder with a single linearly-polarized coil. The
 full density-matrix engine keeps a general RF direction and phase per coil and is
@@ -4693,6 +4694,39 @@ wins for NQR are therefore broadband \emph{excitation} and \emph{inversion}
 
 Higher-spin transition-selective pulses (drive one line, leave another) and
 exact lab-frame satellite control are natural follow-ons on the same engine.
+
+\subsection{Tri-axial (multi-coil) SLSE excitation}
+\label{sec:grape-multi-axis}
+
+The examples above optimize a waveform on a single coil. The module
+\code{optimal\_control.multi\_axis} instead optimizes a \emph{parametric}
+multi-coil pulse: up to three orthogonal coils, each contributing one
+\emph{rectangular} sub-pulse whose amplitude, phase, delay, and length are the
+free parameters, for both the excitation and the refocusing pulse of an SLSE
+train. Sequential versus simultaneous excitation is not imposed --- it emerges
+from the fitted delays and lengths. Each rectangular sub-pulse is rendered on a
+fixed fine time grid through a smooth (sigmoid) window so the delay/length
+parameters are differentiable, and the whole refocused-powder-signal objective is
+one \code{jax.value\_and\_grad} closure (the degeneracy-safe \code{expm}
+propagator throughout). \code{MultiAxisSLSEConfig} sets the coils, per-coil
+\(B_1\) cap, pulse windows, echo train, and receiver (single coil, or a
+crossed-coil quadrature pair); \code{optimize\_multi\_axis\_slse} runs a bounded
+multistart.
+
+\code{examples\textbackslash grape\_nqr\_multi\_axis\_slse.py} hands GRAPE full
+freedom over one, two, and three axes and compares the refocused powder signal at
+\emph{matched per-coil} \(B_1\) (so a scheme with more coils spends more total RF
+power and receiver channels, reported honestly rather than folded into the gain).
+The result is instructive: essentially all of the benefit is in going from one to
+two axes --- GRAPE spontaneously drives two coils in near-quadrature, i.e. it
+\emph{rediscovers circular polarization} (Section~\ref{sec:nqr-circular}) ---
+raising the refocused signal by \(\sim 1.6\times\) (\(\sim 1.15\times\) net SNR
+after the \(\sqrt{2}\) two-channel receiver-noise penalty). A third independently
+controlled axis adds essentially nothing to the powder SLSE signal: the optimizer
+zeroes its amplitude. This is another instance of the recurring theme --- a
+well-tuned powder NQR detection scheme (here, circular polarization) is already
+close to optimal, and the value of the optimizer is in \emph{confirming} that,
+not beating it.
 
 \chapter{Examples}
 
